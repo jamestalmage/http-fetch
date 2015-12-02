@@ -4,6 +4,8 @@ var child = require('child_process');
 var which = require('which');
 var goxc = which.sync('goxc');
 var del = require('del');
+var ghPages = require('gh-pages');
+var path = require('path');
 
 gulp.task('clean', function () {
 	return del(['build']);
@@ -21,5 +23,9 @@ gulp.task('compile', function (done) {
 			}
 			done();
 		});
+});
+
+gulp.task('publish', function (done) {
+	ghPages.publish(path.join(__dirname, 'build'), {add: true}, done);
 });
 
