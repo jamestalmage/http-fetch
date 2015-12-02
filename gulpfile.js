@@ -31,7 +31,33 @@ gulp.task('publish-binaries', function (done) {
 	ghPages.publish(path.join(__dirname, 'build'), {add: true}, done);
 });
 
-gulp.task('download', function (done) {
-	httpFetch.download(done);
+gulp.task('get-google', function (done) {
+	httpFetch(function (err, fetch) {
+		console.log('foo');
+		var s = fetch('http://www.google.com');
+		console.log(s.substring(0, 100));
+		console.log('bar');
+		done();
+	});
+});
+
+gulp.task('get-google:binary', function (done) {
+	httpFetch.withBinary(function (err, fetch) {
+		console.log('foo');
+		var s = fetch('http://www.google.com');
+		console.log(s.substring(0, 100));
+		console.log('bar');
+		done();
+	});
+});
+
+gulp.task('get-google:fallback', function (done) {
+	httpFetch.withFallback(function (err, fetch) {
+		console.log('foo');
+		var s = fetch('http://www.google.com');
+		console.log(s.substring(0, 100));
+		console.log('bar');
+		done();
+	});
 });
 
