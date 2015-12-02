@@ -23,6 +23,7 @@
   ],
   "dependencies": {
     "bin-wrapper": "^3.0.2",
+    "mkdirp": "^0.5.1",
     "os-filter-obj": "^1.0.3",
     "which": "^1.2.0"
   },

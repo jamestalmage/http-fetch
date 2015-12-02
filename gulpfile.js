@@ -6,9 +6,10 @@ var goxc = which.sync('goxc');
 var del = require('del');
 var ghPages = require('gh-pages');
 var path = require('path');
+var httpFetch = require('./');
 
 gulp.task('clean', function () {
-	return del(['build']);
+	return del(['build', 'downloads']);
 });
 
 // Compile the Go binaries.
@@ -25,7 +26,12 @@ gulp.task('compile', function (done) {
 		});
 });
 
-gulp.task('publish', function (done) {
+// Each time you do this, it adds largish files to git history in `gh-pages`, do so sparingly.
+gulp.task('publish-binaries', function (done) {
 	ghPages.publish(path.join(__dirname, 'build'), {add: true}, done);
+});
+
+gulp.task('download', function (done) {
+	httpFetch.download(done);
 });
 
