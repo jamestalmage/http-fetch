@@ -31,33 +31,42 @@ gulp.task('publish-binaries', function (done) {
 	ghPages.publish(path.join(__dirname, 'build'), {add: true}, done);
 });
 
-gulp.task('get-google', function (done) {
-	httpFetch(function (err, fetch) {
-		console.log('foo');
-		var s = fetch('http://www.google.com');
-		console.log(s.substring(0, 100));
-		console.log('bar');
-		done();
-	});
+gulp.task('async-foo', function (done) {
+	httpFetch.withCurl(foocb(done));
 });
 
-gulp.task('get-google:binary', function (done) {
-	httpFetch.withBinary(function (err, fetch) {
-		console.log('foo');
-		var s = fetch('http://www.google.com');
-		console.log(s.substring(0, 100));
-		console.log('bar');
-		done();
-	});
+gulp.task('sync-foo', function () {
+	foo(null, httpFetch.withCurlSync());
 });
 
-gulp.task('get-google:fallback', function (done) {
-	httpFetch.withFallback(function (err, fetch) {
-		console.log('foo');
-		var s = fetch('http://www.google.com');
-		console.log(s.substring(0, 100));
-		console.log('bar');
-		done();
-	});
+gulp.task('async-foo:binary', function (done) {
+	httpFetch.withBinary(foocb(done));
 });
+
+gulp.task('sync-foo:binary', function () {
+	foo(null, httpFetch.withBinarySync());
+});
+
+gulp.task('sync-foo:fallback', function () {
+	var fetch = httpFetch.getFallback();
+	foo(null, fetch);
+});
+
+function foo(err, fetch) {
+	console.log('foo', fetch.cmd, fetch.args);
+	var s = fetch('http://www.google.com');
+	console.log(s.substring(0, 100));
+	console.log('bar');
+}
+
+function foocb(cb) {
+	return function (err, fetch) {
+		try {
+			foo(err, fetch);
+			cb();
+		} catch (e) {
+			cb(e);
+		}
+	}
+}
 

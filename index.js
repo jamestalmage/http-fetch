@@ -7,10 +7,14 @@ var child = require('child_process');
 var fetch;
 
 module.exports = main;
+module.exports.sync = sync;
 module.exports.download = download;
 module.exports.findPath = findPath;
 module.exports.withCurl = withCurl;
+module.exports.withCurlSync = withCurlSync;
 module.exports.withBinary = withBinary;
+module.exports.withBinarySync = withBinarySync;
+module.exports.getFallback = makeFallback.bind(null, null);
 
 function main(cb) {
 	if (fetch) {
@@ -24,16 +28,17 @@ function main(cb) {
 			cb(err);
 			return;
 		}
-		fetch = _fetch;
+		fetch = fetch || _fetch;
 		cb(null, fetch);
 	});
 }
 
-module.exports.withFallback = function (cb) {
-	setImmediate(function () {
-		makeFallback(cb);
-	});
-};
+function sync() {
+	if (!fetch) {
+		fetch = withCurlSync();
+	}
+	return fetch;
+}
 
 function download (cb) {
 	return require('./lib/download')(cb);
@@ -56,11 +61,19 @@ function withCurl(cb) {
 	}
 }
 
+function withCurlSync() {
+	try {
+		return makeFetch(which.sync('curl'), ['-s']);
+	} catch (e) {
+		return withBinarySync();
+	}
+}
+
 function withBinary(cb) {
 	var downloadTo = findPath().downloadTo();
 
 	if (!downloadTo) {
-		console.log('could not find downloadTo path')
+		console.log('could not find downloadTo path');
 		setImmediate(function () {
 			makeFallback(cb);
 		});
@@ -100,17 +113,57 @@ function withBinary(cb) {
 	}
 }
 
+function withBinarySync() {
+	var downloadTo = findPath().downloadTo();
+	if (!downloadTo) {
+		return makeFallback();
+	}
+
+	if (existsSync(downloadTo)) {
+	  return makeFetch(downloadTo, []);
+	}
+
+	try {
+		var downloadNow = path.join(__dirname, 'lib/download-now.js');
+		exec(process.execPath, [downloadNow]);
+	} catch (e) {
+		return makeFallback();
+	}
+
+	if (existsSync(downloadTo)) {
+		return makeFetch(downloadTo, []);
+	}
+
+	return makeFallback();
+}
+
+function existsSync(file) {
+	if (fs.accessSync) {
+		try {
+			fs.accessSync(file, fs.X_OK);
+			return true;
+		} catch(e) {
+			return false;
+		}
+	}
+	return fs.existsSync(file);
+}
+
 function makeFallback(cb) {
-	makeFetch(
+	return makeFetch(
 		process.execPath,
 		[path.join(__dirname, 'lib/fallback.js')],
 		cb
 	);
 }
 
+function exec(cmd, args) {
+	return child.execFileSync(cmd, args, {encoding: 'utf8'});
+}
+
 function makeFetch(cmd, args, cb) {
 	function fetch(url) {
-		return child.execFileSync(cmd, args.concat([url]), {encoding: 'utf8'});
+		return exec(cmd, args.concat([url]));
 	}
 
 	Object.defineProperties(fetch, {
@@ -126,5 +179,6 @@ function makeFetch(cmd, args, cb) {
 		}
 	});
 
-	cb(null, fetch);
+	cb && cb(null, fetch);
+	return fetch;
 }
